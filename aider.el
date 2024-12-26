@@ -70,6 +70,23 @@ Returns t if the last line starts with '>', indicating aider is ready for next i
       (forward-line 0)
       (looking-at "^>"))))
 
+(defun aider--extract-between-last-two-prompts (buffer)
+  "Extract content between the last two prompts in BUFFER.
+The prompt is a line starting with '>'.
+Returns the content as string, or signals an error if not found."
+  (with-current-buffer buffer
+    (save-excursion
+      (goto-char (point-max))
+      (if (re-search-backward "^>" nil t 2) ;; find second-to-last prompt
+          (let ((answer-start (point)))
+            (forward-line)
+            (buffer-substring-no-properties 
+             answer-start
+             (progn
+               (re-search-forward "^>" nil t) ;; find last prompt
+               (line-beginning-position))))
+        (error "Could not find answer in buffer")))))
+
 (defun aider--ask-and-get-answer (question)
   "Send question to aider session and wait for answer.
 QUESTION is the question to ask.
@@ -88,18 +105,7 @@ The prompt marker is a line starting with '>'."
         (sleep-for 0.1)
         (setq tries (1+ tries)))
       ;; Extract answer between last two prompts
-      (with-current-buffer buffer
-        (save-excursion
-          (goto-char (point-max))
-          (if (re-search-backward "^>" nil t 2) ;; find second-to-last prompt
-              (let ((answer-start (point)))
-                (forward-line)
-                (buffer-substring-no-properties 
-                 answer-start
-                 (progn
-                   (re-search-forward "^>" nil t) ;; find last prompt
-                   (line-beginning-position))))
-            (error "Could not find answer in buffer")))))))
+      (aider--extract-between-last-two-prompts buffer))))
 
 (aider--prompt-available-p (get-buffer (aider-buffer-name)))
 
