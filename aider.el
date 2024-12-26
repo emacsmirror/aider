@@ -61,32 +61,36 @@ Otherwise return STR unchanged."
       (format "{aider\n%s\naider}" str)
     str))
 
-(defun aider--prompt-available-p ()
-  "Check if aider prompt is available at the end of buffer.
+(defun aider--prompt-available-p (buffer)
+  "Check if aider prompt is available at the end of BUFFER.
 Returns t if the last line starts with '>', indicating aider is ready for next input."
-  (save-excursion
-    (goto-char (point-max))
-    (beginning-of-line)
-    (looking-at "^>")))
+  (with-current-buffer buffer
+    (save-excursion
+      (goto-char (point-max))
+      (beginning-of-line)
+      (looking-at "^>"))))
 
 (defun aider--ask-and-get-answer (question)
   "Send question to aider session and wait for answer.
 QUESTION is the question to ask.
 Returns the answer string between last two prompt markers.
 The prompt marker is a line starting with '>'."
-  (let ((command (concat "/ask " question)))
+  (let ((command (concat "/ask " question))
+        (buffer (get-buffer (aider-buffer-name))))
     ;; Send command
     (aider--send-command command)
+    
     ;; Wait for completion (prompt appears at line start)
-    (with-current-buffer (aider-buffer-name)
-      (let ((tries 0)
-            (max-tries 600)) ;; 60 seconds timeout
-        ;; Wait until we see a prompt at the end of buffer
-        (while (and (< tries max-tries)
-                   (not (aider--prompt-available-p)))
-          (sleep-for 0.1)
-          (setq tries (1+ tries)))
-        ;; Extract answer between last two prompts
+    (let ((tries 0)
+          (max-tries 600)) ;; 60 seconds timeout
+      ;; Wait until we see a prompt at the end of buffer
+      (while (and (< tries max-tries)
+                  (not (aider--prompt-available-p buffer)))
+        (sleep-for 0.1)
+        (setq tries (1+ tries)))
+      
+      ;; Extract answer between last two prompts
+      (with-current-buffer buffer
         (save-excursion
           (goto-char (point-max))
           (if (re-search-backward "^>" nil t 2) ;; find second-to-last prompt
