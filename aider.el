@@ -108,13 +108,18 @@ The prompt marker is a line starting with '>'."
       (aider--extract-between-last-two-prompts buffer))))
 
 (defun aider--extract-last-smerge-block-new-code (buffer)
-  "Identify, extract, and return the last smerge formatted code block from BUFFER. Return nil if none found."
+  "Identify, extract, and return the last smerge formatted code block from BUFFER with trailing spaces removed.
+Return nil if none found."
   (with-current-buffer buffer
     (goto-char (point-max))
     (if (re-search-backward "=======" nil t)
         (let ((start (point)))
           (if (re-search-forward ">>>>>>>" nil t)
-              (buffer-substring-no-properties start (point))
+              (let ((text (buffer-substring-no-properties start (point))))
+                ;; Split into lines, trim each line, and join back
+                (mapconcat (lambda (line) (string-trim-right line))
+                          (split-string text "\n")
+                          "\n"))
             nil))
       nil)))
 
