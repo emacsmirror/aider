@@ -102,13 +102,15 @@ The prompt marker is a line starting with '>'."
             (error "Could not find answer in buffer")))))))
 
 (defun aider--last-line (buffer)
-  "Check if aider prompt is available at the end of BUFFER.
-Returns t if the last line starts with '>', indicating aider is ready for next input."
+  "Get the last line of the BUFFER.
+Returns the content of the last line as string, without properties."
   (with-current-buffer buffer
     (save-excursion
       (goto-char (point-max))
       (beginning-of-line)
-      (looking-at "^>"))))
+      (buffer-substring-no-properties 
+       (point)
+       (line-end-position)))))
 
 (aider--prompt-available-p (get-buffer (aider-buffer-name)))
 
