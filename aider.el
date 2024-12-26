@@ -79,7 +79,6 @@ The prompt marker is a line starting with '>'."
         (buffer (get-buffer (aider-buffer-name))))
     ;; Send command
     (aider--send-command command)
-    
     ;; Wait for completion (prompt appears at line start)
     (let ((tries 0)
           (max-tries 600)) ;; 60 seconds timeout
@@ -88,7 +87,6 @@ The prompt marker is a line starting with '>'."
                   (not (aider--prompt-available-p buffer)))
         (sleep-for 0.1)
         (setq tries (1+ tries)))
-      
       ;; Extract answer between last two prompts
       (with-current-buffer buffer
         (save-excursion
@@ -102,6 +100,17 @@ The prompt marker is a line starting with '>'."
                    (re-search-forward "^>" nil t) ;; find last prompt
                    (line-beginning-position))))
             (error "Could not find answer in buffer")))))))
+
+(defun aider--last-line (buffer)
+  "Check if aider prompt is available at the end of BUFFER.
+Returns t if the last line starts with '>', indicating aider is ready for next input."
+  (with-current-buffer buffer
+    (save-excursion
+      (goto-char (point-max))
+      (beginning-of-line)
+      (looking-at "^>"))))
+
+(aider--prompt-available-p (get-buffer (aider-buffer-name)))
 
 (setq test-answer (aider--ask-and-get-answer "Write a helloworld in elisp"))
 
