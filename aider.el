@@ -112,7 +112,24 @@ Returns the content of the last line as string, without properties."
        (point)
        (line-end-position)))))
 
+(defun aider--last-line (buffer)
+  "Get the last line of the BUFFER.
+Returns the content of the last line as string, without properties."
+  (with-current-buffer buffer
+    (save-excursion
+      (goto-char (point-max))
+      (beginning-of-line)
+      (buffer-substring-no-properties 
+       (point)
+       (line-end-position)))))
+
+(with-current-buffer (get-buffer (aider-buffer-name))
+  (goto-char (point-max))
+  (beginning-of-line))
+
 (aider--prompt-available-p (get-buffer (aider-buffer-name)))
+
+(aider--last-line (get-buffer (aider-buffer-name)))
 
 (setq test-answer (aider--ask-and-get-answer "Write a helloworld in elisp"))
 
