@@ -61,6 +61,39 @@ Otherwise return STR unchanged."
       (format "{aider\n%s\naider}" str)
     str))
 
+(defun aider--ask-and-get-answer (question)
+  "Send question to aider session and wait for answer.
+QUESTION is the question to ask.
+Returns the answer string between last two prompt markers."
+  (let ((command (concat "/ask " question)))
+    ;; Send command
+    (aider--send-command command)
+    
+    ;; Wait for completion (prompt ">" appears at line start)
+    (with-current-buffer (aider-buffer-name)
+      (let ((tries 0)
+            (max-tries 600)) ;; 60 seconds timeout
+        (while (and (< tries max-tries)
+                   (not (save-excursion
+                          (goto-char (point-max))
+                          (beginning-of-line)
+                          (looking-at "^>"))))
+          (sleep-for 0.1)
+          (setq tries (1+ tries)))
+        
+        ;; Extract answer between last two prompts
+        (save-excursion
+          (goto-char (point-max))
+          (if (re-search-backward "^>" nil t 2)
+              (let ((answer-start (point)))
+                (forward-line)
+                (buffer-substring-no-properties 
+                 answer-start
+                 (progn
+                   (re-search-forward "^>" nil t)
+                   (line-beginning-position))))
+            (error "Could not find answer in buffer")))))))
+
 ;;;###autoload
 (defun aider-plain-read-string (prompt &optional initial-input)
   "Read a string from the user with PROMPT and optional INITIAL-INPUT.
