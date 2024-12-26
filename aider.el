@@ -55,7 +55,7 @@ When nil, use standard `display-buffer' behavior."
 (defun aider--process-message-if-multi-line (str)
   "Entering multi-line chat messages
 https://aider.chat/docs/usage/commands.html#entering-multi-line-chat-messages
-If STR contains newlines, wrap it in {aider.el\\nstr\\naider.el}.
+If STR contains newlines, wrap it in {aider\\nstr\\naider}.
 Otherwise return STR unchanged."
   (if (string-match-p "\n" str)
       (format "{aider\n%s\naider}" str)
@@ -87,12 +87,12 @@ Returns the content as string, or signals an error if not found."
                (line-beginning-position))))
         (error "Could not find answer in buffer")))))
 
-(defun aider--ask-and-get-answer (question)
+(defun aider--ask-smerge-format-and-get-answer (question)
   "Send question to aider session and wait for answer.
 QUESTION is the question to ask.
 Returns the answer string between last two prompt markers.
 The prompt marker is a line starting with '>'."
-  (let ((command (concat "/ask " question))
+  (let ((command (concat "/ask " question ". only output answer, in emacs smerge format."))
         (buffer (get-buffer (aider-buffer-name))))
     ;; Send command
     (aider--send-command command)
@@ -107,24 +107,21 @@ The prompt marker is a line starting with '>'."
       ;; Extract answer between last two prompts
       (aider--extract-between-last-two-prompts buffer))))
 
- <<<<<<< HEAD                                                                   
- (message "Hello, World!")                                                      
- =======                                                                        
- (defun hello-world ()                                                          
-   "Say hello to the world."                                                    
-   (interactive)                                                                
-   (message "Hello, World!"))                                                   
- >>>>>>> feature/hello-world                                                    
+(defun aider--extract-last-smerge-block-new-code (buffer)
+  "Identify, extract, and return the last smerge formatted code block from BUFFER. Return nil if none found."
+  (with-current-buffer buffer
+    (goto-char (point-max))
+    (if (re-search-backward "=======" nil t)
+        (let ((start (point)))
+          (if (re-search-forward ">>>>>>>" nil t)
+              (buffer-substring-no-properties start (point))
+            nil))
+      nil)))
 
-(defun test-answer (smerge-text)
-  "Parse the second half (after =======) of a smerge-style string.
-Returns the code between ======= and >>>>>>> lines."
-  (when (string-match "=======\n\\(\\(?:.\\|\n\\)*?\\)>>>>>>>" smerge-text)
-    (match-string 1 smerge-text)))
+(aider--ask-smerge-format-and-get-answer "write a helloworld in emacs lisp")
 
-(let ((test-str "<<<<<<< HEAD
-(message \"Hello, World!\")
-
+(message (aider--extract-last-smerge-block-new-code (get-buffer (aider-buffer-name))))
+                                                                                
 ;;;###autoload
 (defun aider-plain-read-string (prompt &optional initial-input)
   "Read a string from the user with PROMPT and optional INITIAL-INPUT.
