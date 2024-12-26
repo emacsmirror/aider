@@ -68,7 +68,6 @@ Returns the answer string between last two prompt markers."
   (let ((command (concat "/ask " question)))
     ;; Send command
     (aider--send-command command)
-    
     ;; Wait for completion (prompt ">" appears at line start)
     (with-current-buffer (aider-buffer-name)
       (let ((tries 0)
@@ -80,7 +79,6 @@ Returns the answer string between last two prompt markers."
                           (looking-at "^>"))))
           (sleep-for 0.1)
           (setq tries (1+ tries)))
-        
         ;; Extract answer between last two prompts
         (save-excursion
           (goto-char (point-max))
@@ -93,6 +91,8 @@ Returns the answer string between last two prompt markers."
                    (re-search-forward "^>" nil t)
                    (line-beginning-position))))
             (error "Could not find answer in buffer")))))))
+
+(setq test-answer (aider--ask-and-get-answer "Write a helloworld in elisp"))
 
 ;;;###autoload
 (defun aider-plain-read-string (prompt &optional initial-input)
