@@ -116,9 +116,14 @@ The prompt marker is a line starting with '>'."
    (message "Hello, World!"))                                                   
  >>>>>>> feature/hello-world                                                    
 
-(setq test-answer (aider--ask-and-get-answer "Write a helloworld in elisp, only output the program, in emacs smerge format"))
+(defun test-answer (smerge-text)
+  "Parse the second half (after =======) of a smerge-style string.
+Returns the code between ======= and >>>>>>> lines."
+  (when (string-match "=======\n\\(\\(?:.\\|\n\\)*?\\)>>>>>>>" smerge-text)
+    (match-string 1 smerge-text)))
 
-(message test-answer)
+(let ((test-str "<<<<<<< HEAD
+(message \"Hello, World!\")
 
 ;;;###autoload
 (defun aider-plain-read-string (prompt &optional initial-input)
