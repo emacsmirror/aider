@@ -103,13 +103,14 @@ The prompt marker is a line starting with '>'."
 
 (defun aider--last-line (buffer)
   "Get the last line of the BUFFER.
-Returns the content of the last line as string, without properties."
+Returns the content of the last line as string, without properties.
+In comint buffers, this includes the prompt character '>'."
   (with-current-buffer buffer
     (save-excursion
       (goto-char (point-max))
-      (beginning-of-line)
+      (forward-line 0)  ;; Use forward-line 0 instead of beginning-of-line
       (buffer-substring-no-properties 
-       (point)
+       (point-at-bol)   ;; Use point-at-bol to get true beginning of line
        (line-end-position)))))
 
 (defun aider--last-line (buffer)
