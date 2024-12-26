@@ -107,9 +107,18 @@ The prompt marker is a line starting with '>'."
       ;; Extract answer between last two prompts
       (aider--extract-between-last-two-prompts buffer))))
 
-(aider--prompt-available-p (get-buffer (aider-buffer-name)))
+ <<<<<<< HEAD                                                                   
+ (message "Hello, World!")                                                      
+ =======                                                                        
+ (defun hello-world ()                                                          
+   "Say hello to the world."                                                    
+   (interactive)                                                                
+   (message "Hello, World!"))                                                   
+ >>>>>>> feature/hello-world                                                    
 
-(setq test-answer (aider--ask-and-get-answer "Write a helloworld in elisp"))
+(setq test-answer (aider--ask-and-get-answer "Write a helloworld in elisp, only output the program, in emacs smerge format"))
+
+(message test-answer)
 
 ;;;###autoload
 (defun aider-plain-read-string (prompt &optional initial-input)
