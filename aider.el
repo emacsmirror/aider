@@ -61,34 +61,41 @@ Otherwise return STR unchanged."
       (format "{aider\n%s\naider}" str)
     str))
 
+(defun aider--prompt-available-p ()
+  "Check if aider prompt is available at the end of buffer.
+Returns t if the last line starts with '>', indicating aider is ready for next input."
+  (save-excursion
+    (goto-char (point-max))
+    (beginning-of-line)
+    (looking-at "^>")))
+
 (defun aider--ask-and-get-answer (question)
   "Send question to aider session and wait for answer.
 QUESTION is the question to ask.
-Returns the answer string between last two prompt markers."
+Returns the answer string between last two prompt markers.
+The prompt marker is a line starting with '>'."
   (let ((command (concat "/ask " question)))
     ;; Send command
     (aider--send-command command)
-    ;; Wait for completion (prompt ">" appears at line start)
+    ;; Wait for completion (prompt appears at line start)
     (with-current-buffer (aider-buffer-name)
       (let ((tries 0)
             (max-tries 600)) ;; 60 seconds timeout
+        ;; Wait until we see a prompt at the end of buffer
         (while (and (< tries max-tries)
-                   (not (save-excursion
-                          (goto-char (point-max))
-                          (beginning-of-line)
-                          (looking-at "^>"))))
+                   (not (aider--prompt-available-p)))
           (sleep-for 0.1)
           (setq tries (1+ tries)))
         ;; Extract answer between last two prompts
         (save-excursion
           (goto-char (point-max))
-          (if (re-search-backward "^>" nil t 2)
+          (if (re-search-backward "^>" nil t 2) ;; find second-to-last prompt
               (let ((answer-start (point)))
                 (forward-line)
                 (buffer-substring-no-properties 
                  answer-start
                  (progn
-                   (re-search-forward "^>" nil t)
+                   (re-search-forward "^>" nil t) ;; find last prompt
                    (line-beginning-position))))
             (error "Could not find answer in buffer")))))))
 
