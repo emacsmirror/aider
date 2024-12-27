@@ -70,32 +70,16 @@ Returns t if the last line starts with '>', indicating aider is ready for next i
       (forward-line 0)
       (looking-at "^>"))))
 
-(defun aider--extract-between-last-two-prompts (buffer)
-  "Extract content between the last two prompts in BUFFER.
-The prompt is a line starting with '>'.
-Returns the content as string, or signals an error if not found."
-  (with-current-buffer buffer
-    (save-excursion
-      (goto-char (point-max))
-      (if (re-search-backward "^>" nil t 2) ;; find second-to-last prompt
-          (let ((answer-start (point)))
-            (forward-line)
-            (buffer-substring-no-properties 
-             answer-start
-             (progn
-               (re-search-forward "^>" nil t) ;; find last prompt
-               (line-beginning-position))))
-        (error "Could not find answer in buffer")))))
-
-(defun aider--ask-smerge-format-and-get-answer (question)
+(defun aider--ask-git-diff-format-and-get-answer (question)
   "Send question to aider session and wait for answer.
 QUESTION is the question to ask.
 Returns the answer string between last two prompt markers.
 The prompt marker is a line starting with '>'."
-  ;; (let ((command (concat "/ask " question ". Only output the code."))
-  (let ((command (concat "/ask Only output the result, in git diff format: " question))
-  ;; (let ((command (concat "/ask " question ". Only output the result, in git diff format"))
-        (buffer (get-buffer (aider-buffer-name))))
+  (let* ((format-prefix "only output the result, in git diff format: ")
+         (prog-lang-prefix (aider--get-lang-prefix))
+         (prompt (concat format-prefix prog-lang-prefix question))
+         (command (concat "/ask " prompt))
+         (buffer (get-buffer (aider-buffer-name))))
     ;; Send command
     (aider--send-command command)
     ;; Wait for completion (prompt appears at line start)
@@ -107,17 +91,16 @@ The prompt marker is a line starting with '>'."
         (sleep-for 0.1)
         (setq tries (1+ tries)))
       ;; Extract answer between last two prompts
-      (aider--extract-last-smerge-block-new-code buffer))))
+      (aider--extract-last-diff+block buffer))))
 
-(aider--ask-smerge-format-and-get-answer "write a helloworld in emacs lisp")
-
-(aider--ask-smerge-format-and-get-answer "write a fibnacci function in emacs lisp")
-
-(aider--ask-smerge-format-and-get-answer "proofreading my english: How do your did")
-
-(message (aider--extract-last-smerge-block-new-code (get-buffer (aider-buffer-name))))
-
-(message (aider--extract-last-diff+block (get-buffer (aider-buffer-name))))
+(defun aider--get-lang-prefix ()
+  "Get the language prefix based on the current major mode."
+  (if (derived-mode-p 'prog-mode)
+      (let* ((mode-name (symbol-name major-mode))
+             (lang (replace-regexp-in-string
+                    "-mode" "" (replace-regexp-in-string "-ts-mode" "" mode-name))))
+        (format "in %s language, " lang))
+    "in human language, "))
 
 (defun aider--extract-last-diff+block (buffer)
   "Extract the last diff block with only + lines from BUFFER.
@@ -126,42 +109,21 @@ Return nil if none found."
   (with-current-buffer buffer
     (save-excursion
       (goto-char (point-max))
-      (when (re-search-backward "^\\+ " nil t)
+      (when (re-search-backward "^[ ]*[+]" nil t)
         (let ((end (point-at-eol))
               start)
           ;; Find start of the block
-          (while (and (looking-at "^\\+ ")
+          (while (and (looking-at "^[ ]*[+]")
                      (= (forward-line -1) 0)))
           (forward-line 1)
           (setq start (point))
           ;; Extract block and process each line
           (let ((lines (split-string (buffer-substring-no-properties start end) "\n" t)))
             (mapconcat (lambda (line)
-                        (string-trim
-                         (replace-regexp-in-string "^\\+ +" "" line)))
+                        (string-trim-right
+                         (replace-regexp-in-string "^[ ]*[+]" "" line)))
                       lines
                       "\n")))))))
-
- + (defun hello-world ()                                                        
- +   "Print hello world message."                                               
- +   (interactive)                                                              
- +   (message "Hello, world!"))                                                 
-                                                                                
-(defun aider--extract-last-smerge-block-new-code (buffer)
-  "Identify, extract, and return the last smerge formatted code block from BUFFER with trailing spaces removed.
-Return nil if none found."
-  (with-current-buffer buffer
-    (goto-char (point-max))
-    (if (re-search-backward "=======" nil t)
-        (let ((start (point)))
-          (if (re-search-forward ">>>>>>>" nil t)
-              (let ((text (buffer-substring-no-properties start (point))))
-                ;; Split into lines, trim each line, and join back
-                (mapconcat (lambda (line) (string-trim-right line))
-                           (split-string text "\n")
-                           "\n"))
-            nil))
-      nil)))
 
 ;;;###autoload
 (defun aider-plain-read-string (prompt &optional initial-input)
