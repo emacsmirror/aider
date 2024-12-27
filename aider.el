@@ -253,7 +253,7 @@ Ensure proper highlighting of the text in the buffer."
                                                      'rear-nonsticky t))))
         ;; Send raw text to process
         (process-send-string process chunk)
-        (sleep-for 0.1)
+        (sleep-for 0.2)
         ;; (message "Sent command to aider buffer: %s" chunk)
         (setq pos end-pos)))))
 
@@ -415,6 +415,17 @@ Return nil if none found."
                          (replace-regexp-in-string "^[ ]*[+]" "" line)))
                       lines
                       "\n")))))))
+ ;; +Hello: My name is Qiong Zheng. On the afternoon of August 14, 2024, my daught 
+ ;; helped me make an appointment in advance to get the flu vaccine and the        
+ ;; urticaria vaccine at your pharmacy.                                            
+ ;; +I paid $580.61 out of pocket at that time.                                    
+ ;; +However, the California government approved my Medi-Cal on May 1, 2024, and I 
+ ;; have been eligible for this government benefit since May 1.                    
+ ;; +I have a government letter proving this point (your Medi-Cal benefits start   
+ ;; from 05/01/2024).                                                              
+ ;; +Accordingly, I would like to request a refund of this fee from your pharmacy. 
+ ;; +Thank you!                                                                    
+
 
 ;;;###autoload
 (defun aider-ask-question-and-insert-answer ()
@@ -424,24 +435,45 @@ The answer will be formatted as a git diff and cleaned up before insertion."
   (interactive)
   (if (not (get-buffer (aider-buffer-name)))
       (message "Aider buffer not found. Please start aider first.")
-    (let* ((region-text (when (region-active-p)
-                         (buffer-substring-no-properties (region-beginning) (region-end))))
+    (let* ((rap (region-active-p)) 
+           (re (region-end))
+           (region-text (when rap
+                          (buffer-substring-no-properties (region-beginning) re)))
            (question (aider-read-string "What to write: "))
            (full-question (if region-text
                              (format "%s:\n%s" question region-text)
                              question))
            (answer (aider--ask-git-diff-format-and-get-answer full-question)))
       (when answer
-        (if region-active-p
+        (if rap
             (save-excursion
-              (goto-char (region-end))
+              (goto-char re)
               (unless (looking-at "\n")
                 (insert "\n"))
               (forward-line)
               (insert "\n")
               (insert (aider--format-insert-answer answer))
-              (insert "\n"))
+              (insert "\n\n"))
           (insert (aider--format-insert-answer answer)))))))
+
+
+    question = input("What to write: ")
+    full_question = f"{question}:\n{region_text}" if region_text else questio
+    answer = ask_aider_git_diff_format(full_question)
+    if answer:
+        if rap:
+            with save_cursor_position():
+                goto_position(re)
+                if not looking_at("\n"):
+                    insert("\n")
+                move_next_line()
+                insert("\n")
+                insert(format_answer(answer))
+                insert("\n\n")
+        else:
+            insert(format_answer(answer))
+(defun aider--format-insert-answer (answer)
+  answer)
 
 ;; New function to get command from user and send it prefixed with "/help "
 ;;;###autoload
