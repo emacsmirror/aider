@@ -415,6 +415,18 @@ If a region is active, append the region text to the question."
       (aider-add-current-file)
       (aider--send-command command t))))
 
+;;;###autoload
+(defun aider-ask-question-and-insert-answer ()
+  "Ask a question using helm, get the answer from aider, and insert it at point.
+The answer will be formatted as a git diff and cleaned up before insertion."
+  (interactive)
+  (if (not (get-buffer (aider-buffer-name)))
+      (message "Aider buffer not found. Please start aider first.")
+    (let* ((question (helm-read-string-with-history "Enter question: " "aider-questions"))
+           (answer (aider--ask-git-diff-format-and-get-answer question)))
+      (when answer
+        (insert answer)))))
+
 ;; New function to get command from user and send it prefixed with "/help "
 ;;;###autoload
 (defun aider-help ()
