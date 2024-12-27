@@ -401,32 +401,33 @@ Handle wrapped lines that don't have leading + by joining with previous line."
   (with-current-buffer buffer
     (save-excursion
       (goto-char (point-max))
+      ;; First find the last + line
       (when (re-search-backward "^[ ]*[+]" nil t)
-        (let ((end (point-at-eol))
-              start
-              current-line
-              result)
-          ;; Find start of the block
-          (while (and (looking-at "^[ ]*[+]")
-                     (= (forward-line -1) 0)))
-          (forward-line 1)
-          (setq start (point))
-          ;; Process lines
-          (goto-char start)
-          (while (<= (point) end)
-            (setq current-line (buffer-substring-no-properties (point-at-bol) (point-at-eol)))
-            (if (string-match "^[ ]*[+]" current-line)
-                ;; Line starts with +, start new item
-                (progn
-                  (push (replace-regexp-in-string "^[ ]*[+]" "" current-line) result))
-              ;; Line doesn't start with +, append to previous line
-              (when result
-                (setf (car result) 
-                      (concat (car result) " " (string-trim current-line)))))
+        (let ((block-end (point-at-eol)))
+          ;; Then go backwards to find first non-+ line or buffer start
+          (while (and (> (point) (point-min))
+                     (forward-line -1)
+                     (looking-at "^\\([ ]*[+]\\|[ ]+\\)")))
+          ;; Move to start of block
+          (unless (looking-at "^[ ]*[+]")
             (forward-line 1))
-          ;; Join lines and return
-          (when result
-            (mapconcat #'identity (nreverse result) "\n")))))))
+          (let ((block-start (point))
+                current-line
+                result)
+            ;; Process all lines in block
+            (while (<= (point) block-end)
+              (setq current-line (buffer-substring-no-properties (point-at-bol) (point-at-eol)))
+              (if (string-match "^[ ]*[+]" current-line)
+                  ;; Line starts with +, start new item
+                  (push (replace-regexp-in-string "^[ ]*[+]" "" current-line) result)
+                ;; Line doesn't start with +, append to previous line if it's not empty
+                (when (and result (not (string-empty-p (string-trim current-line))))
+                  (setf (car result)
+                        (concat (car result) " " (string-trim current-line)))))
+              (forward-line 1))
+            ;; Join lines and return
+            (when result
+              (mapconcat #'identity (nreverse result) "\n"))))))))
  ;; +Hello: My name is Qiong Zheng. On the afternoon of August 14, 2024, my daught 
  ;; helped me make an appointment in advance to get the flu vaccine and the        
  ;; urticaria vaccine at your pharmacy.                                            
