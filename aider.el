@@ -52,79 +52,6 @@ When nil, use standard `display-buffer' behavior."
                                    ("^\x2500+" 0 '(face nil display (space :width 2))))
   "Font lock keywords for aider buffer.")
 
-(defun aider--process-message-if-multi-line (str)
-  "Entering multi-line chat messages
-https://aider.chat/docs/usage/commands.html#entering-multi-line-chat-messages
-If STR contains newlines, wrap it in {aider\\nstr\\naider}.
-Otherwise return STR unchanged."
-  (if (string-match-p "\n" str)
-      (format "{aider\n%s\naider}" str)
-    str))
-
-(defun aider--prompt-available-p (buffer)
-  "Check if aider prompt is available at the end of BUFFER.
-Returns t if the last line starts with '>', indicating aider is ready for next input."
-  (with-current-buffer buffer
-    (save-excursion
-      (goto-char (point-max))
-      (forward-line 0)
-      (looking-at "^>"))))
-
-(defun aider--ask-git-diff-format-and-get-answer (question)
-  "Send question to aider session and wait for answer.
-QUESTION is the question to ask.
-Returns the answer string between last two prompt markers.
-The prompt marker is a line starting with '>'."
-  (let* ((format-prefix "only output the result, in git diff format: ")
-         (prog-lang-prefix (aider--get-lang-prefix))
-         (prompt (concat format-prefix prog-lang-prefix question))
-         (command (concat "/ask " prompt))
-         (buffer (get-buffer (aider-buffer-name))))
-    ;; Send command
-    (aider--send-command command)
-    ;; Wait for completion (prompt appears at line start)
-    (let ((tries 0)
-          (max-tries 600)) ;; 60 seconds timeout
-      ;; Wait until we see a prompt at the end of buffer
-      (while (and (< tries max-tries)
-                  (not (aider--prompt-available-p buffer)))
-        (sleep-for 0.1)
-        (setq tries (1+ tries)))
-      ;; Extract answer between last two prompts
-      (aider--extract-last-diff+block buffer))))
-
-(defun aider--get-lang-prefix ()
-  "Get the language prefix based on the current major mode."
-  (if (derived-mode-p 'prog-mode)
-      (let* ((mode-name (symbol-name major-mode))
-             (lang (replace-regexp-in-string
-                    "-mode" "" (replace-regexp-in-string "-ts-mode" "" mode-name))))
-        (format "in %s language, " lang))
-    "in human language, "))
-
-(defun aider--extract-last-diff+block (buffer)
-  "Extract the last diff block with only + lines from BUFFER.
-Return the extracted code as a string, with leading/trailing spaces and + removed.
-Return nil if none found."
-  (with-current-buffer buffer
-    (save-excursion
-      (goto-char (point-max))
-      (when (re-search-backward "^[ ]*[+]" nil t)
-        (let ((end (point-at-eol))
-              start)
-          ;; Find start of the block
-          (while (and (looking-at "^[ ]*[+]")
-                     (= (forward-line -1) 0)))
-          (forward-line 1)
-          (setq start (point))
-          ;; Extract block and process each line
-          (let ((lines (split-string (buffer-substring-no-properties start end) "\n" t)))
-            (mapconcat (lambda (line)
-                        (string-trim-right
-                         (replace-regexp-in-string "^[ ]*[+]" "" line)))
-                      lines
-                      "\n")))))))
-
 ;;;###autoload
 (defun aider-plain-read-string (prompt &optional initial-input)
   "Read a string from the user with PROMPT and optional INITIAL-INPUT.
@@ -204,6 +131,7 @@ Affects the system message too.")
     ("e" "Explain Function or Region" aider-function-or-region-explain)
     ("p" "Explain Symbol Under Point" aider-explain-symbol-under-point)
     ("D" "Debug Exception" aider-debug-exception)
+    ("i" "Ask Question and Insert Answer" aider-ask-question-and-insert-answer)
     ]
    ["Other"
     ("g" "General Command" aider-general-command)
@@ -329,6 +257,15 @@ Ensure proper highlighting of the text in the buffer."
         ;; (message "Sent command to aider buffer: %s" chunk)
         (setq pos end-pos)))))
 
+(defun aider--process-message-if-multi-line (str)
+  "Entering multi-line chat messages
+https://aider.chat/docs/usage/commands.html#entering-multi-line-chat-messages
+If STR contains newlines, wrap it in {aider\\nstr\\naider}.
+Otherwise return STR unchanged."
+  (if (string-match-p "\n" str)
+      (format "{aider\n%s\naider}" str)
+    str))
+
 ;; Shared helper function to send commands to corresponding aider buffer
 (defun aider--send-command (command &optional switch-to-buffer)
   "Send COMMAND to the corresponding aider comint buffer after performing necessary checks.
@@ -415,6 +352,70 @@ If a region is active, append the region text to the question."
       (aider-add-current-file)
       (aider--send-command command t))))
 
+(defun aider--prompt-available-p (buffer)
+  "Check if aider prompt is available at the end of BUFFER.
+Returns t if the last line starts with '>', indicating aider is ready for next input."
+  (with-current-buffer buffer
+    (save-excursion
+      (goto-char (point-max))
+      (forward-line 0)
+      (looking-at "^>"))))
+
+(defun aider--ask-git-diff-format-and-get-answer (question)
+  "Send question to aider session and wait for answer.
+QUESTION is the question to ask.
+Returns the answer string between last two prompt markers.
+The prompt marker is a line starting with '>'."
+  (let* ((format-prefix "only output the result, in git diff format: ")
+         (prog-lang-prefix (aider--get-lang-prefix))
+         (prompt (concat format-prefix prog-lang-prefix question))
+         (command (concat "/ask " prompt))
+         (buffer (get-buffer (aider-buffer-name))))
+    ;; Send command
+    (aider--send-command command)
+    ;; Wait for completion (prompt appears at line start)
+    (let ((tries 0)
+          (max-tries 600)) ;; 60 seconds timeout
+      ;; Wait until we see a prompt at the end of buffer
+      (while (and (< tries max-tries)
+                  (not (aider--prompt-available-p buffer)))
+        (sleep-for 0.1)
+        (setq tries (1+ tries)))
+      ;; Extract answer between last two prompts
+      (aider--extract-last-diff+block buffer))))
+
+(defun aider--get-lang-prefix ()
+  "Get the language prefix based on the current major mode."
+  (if (derived-mode-p 'prog-mode)
+      (let* ((mode-name (symbol-name major-mode))
+             (lang (replace-regexp-in-string
+                    "-mode" "" (replace-regexp-in-string "-ts-mode" "" mode-name))))
+        (format "in %s language, " lang))
+    "in human language, "))
+
+(defun aider--extract-last-diff+block (buffer)
+  "Extract the last diff block with only + lines from BUFFER.
+Return the extracted code as a string, with leading/trailing spaces and + removed.
+Return nil if none found."
+  (with-current-buffer buffer
+    (save-excursion
+      (goto-char (point-max))
+      (when (re-search-backward "^[ ]*[+]" nil t)
+        (let ((end (point-at-eol))
+              start)
+          ;; Find start of the block
+          (while (and (looking-at "^[ ]*[+]")
+                     (= (forward-line -1) 0)))
+          (forward-line 1)
+          (setq start (point))
+          ;; Extract block and process each line
+          (let ((lines (split-string (buffer-substring-no-properties start end) "\n" t)))
+            (mapconcat (lambda (line)
+                        (string-trim-right
+                         (replace-regexp-in-string "^[ ]*[+]" "" line)))
+                      lines
+                      "\n")))))))
+
 ;;;###autoload
 (defun aider-ask-question-and-insert-answer ()
   "Ask a question using helm, get the answer from aider, and insert it at point.
@@ -422,10 +423,13 @@ The answer will be formatted as a git diff and cleaned up before insertion."
   (interactive)
   (if (not (get-buffer (aider-buffer-name)))
       (message "Aider buffer not found. Please start aider first.")
-    (let* ((question (helm-read-string-with-history "Enter question: " "aider-questions"))
+    (let* ((question (aider-read-string "What to write: "))
            (answer (aider--ask-git-diff-format-and-get-answer question)))
       (when answer
-        (insert answer)))))
+        (insert (aider--format-insert-answer answer))))))
+
+(defun aider-ask-question-and-insert-answer (answer)
+  answer)
 
 ;; New function to get command from user and send it prefixed with "/help "
 ;;;###autoload
