@@ -404,10 +404,14 @@ Handle wrapped lines that don't have leading + by joining with previous line."
       ;; First find the last + line
       (when (re-search-backward "^[ ]*[+]" nil t)
         (let ((block-end (point-at-eol)))
-          ;; Then go backwards to find first non-+ line or buffer start
+          ;; Find the first + line by going backwards
           (while (and (> (point) (point-min))
                      (forward-line -1)
-                     (looking-at "^\\([ ]*[+]\\|[ ]+\\)")))
+                     (or (looking-at "^[ ]*[+]")
+                         (and (looking-at "^[ ]+")
+                              (save-excursion
+                                (forward-line -1)
+                                (looking-at "^[ ]*[+]"))))))
           ;; Move to start of block
           (unless (looking-at "^[ ]*[+]")
             (forward-line 1))
