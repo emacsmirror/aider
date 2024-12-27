@@ -396,25 +396,37 @@ The prompt marker is a line starting with '>'."
 (defun aider--extract-last-diff+block (buffer)
   "Extract the last diff block with only + lines from BUFFER.
 Return the extracted code as a string, with leading/trailing spaces and + removed.
-Return nil if none found."
+Return nil if none found.
+Handle wrapped lines that don't have leading + by joining with previous line."
   (with-current-buffer buffer
     (save-excursion
       (goto-char (point-max))
       (when (re-search-backward "^[ ]*[+]" nil t)
         (let ((end (point-at-eol))
-              start)
+              start
+              current-line
+              result)
           ;; Find start of the block
           (while (and (looking-at "^[ ]*[+]")
                      (= (forward-line -1) 0)))
           (forward-line 1)
           (setq start (point))
-          ;; Extract block and process each line
-          (let ((lines (split-string (buffer-substring-no-properties start end) "\n" t)))
-            (mapconcat (lambda (line)
-                        (string-trim-right
-                         (replace-regexp-in-string "^[ ]*[+]" "" line)))
-                      lines
-                      "\n")))))))
+          ;; Process lines
+          (goto-char start)
+          (while (<= (point) end)
+            (setq current-line (buffer-substring-no-properties (point-at-bol) (point-at-eol)))
+            (if (string-match "^[ ]*[+]" current-line)
+                ;; Line starts with +, start new item
+                (progn
+                  (push (replace-regexp-in-string "^[ ]*[+]" "" current-line) result))
+              ;; Line doesn't start with +, append to previous line
+              (when result
+                (setf (car result) 
+                      (concat (car result) " " (string-trim current-line)))))
+            (forward-line 1))
+          ;; Join lines and return
+          (when result
+            (mapconcat #'identity (nreverse result) "\n")))))))
  ;; +Hello: My name is Qiong Zheng. On the afternoon of August 14, 2024, my daught 
  ;; helped me make an appointment in advance to get the flu vaccine and the        
  ;; urticaria vaccine at your pharmacy.                                            
