@@ -419,17 +419,29 @@ Return nil if none found."
 ;;;###autoload
 (defun aider-ask-question-and-insert-answer ()
   "Ask a question using helm, get the answer from aider, and insert it at point.
+If region is selected, use it as context and insert answer after region with newlines.
 The answer will be formatted as a git diff and cleaned up before insertion."
   (interactive)
   (if (not (get-buffer (aider-buffer-name)))
       (message "Aider buffer not found. Please start aider first.")
-    (let* ((question (aider-read-string "What to write: "))
-           (answer (aider--ask-git-diff-format-and-get-answer question)))
+    (let* ((region-text (when (region-active-p)
+                         (buffer-substring-no-properties (region-beginning) (region-end))))
+           (question (aider-read-string "What to write: "))
+           (full-question (if region-text
+                             (format "%s:\n%s" question region-text)
+                             question))
+           (answer (aider--ask-git-diff-format-and-get-answer full-question)))
       (when answer
-        (insert (aider--format-insert-answer answer))))))
-
-(defun aider-ask-question-and-insert-answer (answer)
-  answer)
+        (if region-active-p
+            (save-excursion
+              (goto-char (region-end))
+              (unless (looking-at "\n")
+                (insert "\n"))
+              (forward-line)
+              (insert "\n")
+              (insert (aider--format-insert-answer answer))
+              (insert "\n"))
+          (insert (aider--format-insert-answer answer)))))))
 
 ;; New function to get command from user and send it prefixed with "/help "
 ;;;###autoload
