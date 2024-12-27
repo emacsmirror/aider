@@ -117,6 +117,24 @@ The prompt marker is a line starting with '>'."
 
 (message (aider--extract-last-smerge-block-new-code (get-buffer (aider-buffer-name))))
 
+(message (aider--extract-last-diff+block (get-buffer (aider-buffer-name))))
+
+(defun aider--extract-last-diff+block (buffer)
+  "Extract the last diff block with only + lines from BUFFER.
+Return the extracted code as a string, or nil if none found."
+  (with-current-buffer buffer
+    (save-excursion
+      (goto-char (point-max))
+      (when (re-search-backward "^[ ]*\\+ " nil t)
+        (let ((end (point-at-eol))
+              start)
+          ;; Find start of the block
+          (while (and (looking-at "^[ ]*\\+ ")
+                     (= (forward-line -1) 0)))
+          (forward-line 1)
+          (setq start (point))
+          ;; Extract and return the block
+          (buffer-substring-no-properties start end))))))
 
  + (defun hello-world ()                                                        
  +   "Print hello world message."                                               
@@ -138,23 +156,6 @@ Return nil if none found."
                            "\n"))
             nil))
       nil)))
-
-(defun aider--extract-last-diff+block (buffer)
-  "Extract the last diff block with only + lines from BUFFER.
-Return the extracted code as a string, or nil if none found."
-  (with-current-buffer buffer
-    (save-excursion
-      (goto-char (point-max))
-      (when (re-search-backward "^\\+ " nil t)
-        (let ((end (point-at-eol))
-              start)
-          ;; Find start of the block
-          (while (and (looking-at "^\\+ ")
-                     (= (forward-line -1) 0)))
-          (forward-line 1)
-          (setq start (point))
-          ;; Extract and return the block
-          (buffer-substring-no-properties start end))))))
 
 ;;;###autoload
 (defun aider-plain-read-string (prompt &optional initial-input)
