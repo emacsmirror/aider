@@ -92,7 +92,9 @@ Returns the content as string, or signals an error if not found."
 QUESTION is the question to ask.
 Returns the answer string between last two prompt markers.
 The prompt marker is a line starting with '>'."
-  (let ((command (concat "/ask " question ". only output answer, in emacs smerge format."))
+  ;; (let ((command (concat "/ask " question ". Only output the code."))
+  (let ((command (concat "/ask Only output the result, in git diff format: " question))
+  ;; (let ((command (concat "/ask " question ". Only output the result, in git diff format"))
         (buffer (get-buffer (aider-buffer-name))))
     ;; Send command
     (aider--send-command command)
@@ -105,8 +107,22 @@ The prompt marker is a line starting with '>'."
         (sleep-for 0.1)
         (setq tries (1+ tries)))
       ;; Extract answer between last two prompts
-      (aider--extract-between-last-two-prompts buffer))))
+      (aider--extract-last-smerge-block-new-code buffer))))
 
+(aider--ask-smerge-format-and-get-answer "write a helloworld in emacs lisp")
+
+(aider--ask-smerge-format-and-get-answer "write a fibnacci function in emacs lisp")
+
+(aider--ask-smerge-format-and-get-answer "proofreading my english: How do your did")
+
+(message (aider--extract-last-smerge-block-new-code (get-buffer (aider-buffer-name))))
+
+
+ + (defun hello-world ()                                                        
+ +   "Print hello world message."                                               
+ +   (interactive)                                                              
+ +   (message "Hello, world!"))                                                 
+                                                                                
 (defun aider--extract-last-smerge-block-new-code (buffer)
   "Identify, extract, and return the last smerge formatted code block from BUFFER with trailing spaces removed.
 Return nil if none found."
@@ -118,15 +134,11 @@ Return nil if none found."
               (let ((text (buffer-substring-no-properties start (point))))
                 ;; Split into lines, trim each line, and join back
                 (mapconcat (lambda (line) (string-trim-right line))
-                          (split-string text "\n")
-                          "\n"))
+                           (split-string text "\n")
+                           "\n"))
             nil))
       nil)))
 
-(aider--ask-smerge-format-and-get-answer "write a helloworld in emacs lisp")
-
-(message (aider--extract-last-smerge-block-new-code (get-buffer (aider-buffer-name))))
-                                                                                
 ;;;###autoload
 (defun aider-plain-read-string (prompt &optional initial-input)
   "Read a string from the user with PROMPT and optional INITIAL-INPUT.
