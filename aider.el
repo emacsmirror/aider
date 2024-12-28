@@ -134,6 +134,7 @@ Affects the system message too.")
     ]
    ["Other"
     ("g" "General Command" aider-general-command)
+    ("k" "Process AI! Comments" aider-process-ai-comments)
     ("h" "Help" aider-help)
     ]
    ])
@@ -550,6 +551,34 @@ This function assumes the cursor is on or inside a test function."
         (aider-add-current-file)
         (aider--send-command command t))
     (message "No test function found at cursor position.")))
+
+;;;###autoload
+(defun aider-process-ai-comments ()
+  "Send '/code check <current buffer filename>' to aider session.
+Find any comment ending with 'AI!' and implement the request in place.
+If the current buffer is not associated with a file or not in prog-mode, notify the user."
+  (interactive)
+  (cond
+   ((not buffer-file-name)
+    (message "Current buffer is not associated with a file."))
+   ((not (derived-mode-p 'prog-mode))
+    (message "Current buffer is not in a programming mode."))
+   (t
+    (let* ((filename (file-name-nondirectory buffer-file-name))
+           (lang-suffix (aider--get-prog-lang-suffix))
+           (command (format "/code check %s, find any comment end with AI! and implement the request in place, %s, don't do lint or run the code" filename lang-suffix)))
+      (aider-add-current-file)
+      (aider--send-command command t)
+      ))))
+
+(defun aider--get-prog-lang-suffix ()
+  (let* ((major-mode-str (symbol-name major-mode))
+         (lang (replace-regexp-in-string "-mode$" ""
+                                         (replace-regexp-in-string "-ts-mode$" ""
+                                                                   major-mode-str)))
+         (lang-suffix (format "current programming language is: %s" lang)))
+    lang-suffix
+    ))
 
 ;;; functions for .aider file related
 
