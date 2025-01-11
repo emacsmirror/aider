@@ -41,7 +41,7 @@ Explain its basic operations, data structures, and control flow." function-name)
   (interactive)
   (aider-add-current-file)
   (aider--send-command 
-   "/architect Please analyze this code using top-down reading:
+   "/ask Please analyze this code using top-down reading:
 1. Identify main components and their relationships
 2. Explain the program's architecture
 3. Document key interfaces between components
