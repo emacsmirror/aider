@@ -16,64 +16,69 @@
 (require 'transient)
 
 (defun aider-analyze-code-unit ()
-  "Analyze current function or region using bottom-up reading technique.
-Follows Spinellis' method of understanding individual components first."
+  "Analyze current function or region using bottom-up reading technique."
   (interactive)
   (if (region-active-p)
-      (let ((region-text (buffer-substring-no-properties (region-beginning) (region-end))))
-        (aider--send-command 
-         (format "/ask Analyze this code unit using bottom-up reading:
+      (let* ((region-text (buffer-substring-no-properties (region-beginning) (region-end)))
+             (initial-prompt 
+              "Analyze this code unit using bottom-up reading:
 1. Identify basic operations and control structures
 2. Explain data structures used
 3. Document function calls and their purposes
-4. Summarize the overall logic
-
-Code:
-%s" region-text) t))
+4. Summarize the overall logic")
+             (user-input (aider-read-string "Enter analysis instructions: " initial-prompt)))
+        (aider--send-command (format "/ask %s\n\nCode:\n%s" user-input region-text) t))
     (if-let ((function-name (which-function)))
-        (aider--send-command 
-         (format "/ask Analyze function '%s' using bottom-up reading approach. 
-Explain its basic operations, data structures, and control flow." function-name) t)
+        (let* ((initial-prompt 
+                (format "Analyze function '%s' using bottom-up reading approach. 
+Explain its basic operations, data structures, and control flow." function-name))
+               (user-input (aider-read-string "Enter analysis instructions: " initial-prompt)))
+          (aider--send-command (format "/ask %s" user-input) t))
       (message "No function or region selected."))))
 
 (defun aider-analyze-program-structure ()
-  "Analyze code structure using top-down reading technique from Spinellis' book."
+  "Analyze code structure using top-down reading technique."
   (interactive)
-  (aider-add-current-file)
-  (aider--send-command 
-   "/ask Please analyze this code using top-down reading:
+  (let* ((initial-prompt 
+          "Please analyze this code using top-down reading:
 1. Identify main components and their relationships
 2. Explain the program's architecture
 3. Document key interfaces between components
 4. Highlight important design patterns used
-5. Map the control flow between major components" t))
+5. Map the control flow between major components")
+         (user-input (aider-read-string "Enter structure analysis instructions: " initial-prompt)))
+    (aider-add-current-file)
+    (aider--send-command (format "/ask %s" user-input) t)))
 
 (defun aider-analyze-dependencies ()
-  "Analyze code dependencies following Spinellis' cross-reference technique."
+  "Analyze code dependencies following cross-reference technique."
   (interactive)
   (if-let ((function-name (which-function)))
-      (progn
-        (aider-add-current-file)
-        (aider--send-command 
-         (format "/ask For function '%s', please:
+      (let* ((initial-prompt 
+              (format "For function '%s', please:
 1. List all functions it calls
 2. List all functions that call it
 3. Identify key data dependencies
 4. Map external library dependencies
-5. Note any global state interactions" function-name) t))
+5. Note any global state interactions" function-name))
+             (user-input (aider-read-string "Enter dependency analysis instructions: " initial-prompt)))
+        (aider-add-current-file)
+        (aider--send-command (format "/ask %s" user-input) t))
     (message "No function at point.")))
 
 (defun aider-identify-patterns ()
-  "Identify common patterns in code following Spinellis' pattern recognition approach."
+  "Identify common patterns in code following pattern recognition approach."
   (interactive)
-  (aider-add-current-file)
-  (aider--send-command 
-   "/ask Please identify and explain:
+  (let* ((initial-prompt
+          "Please identify and explain:
 1. Common design patterns used
 2. Algorithmic patterns
 3. Error handling patterns
 4. Data structure patterns
-5. Any anti-patterns that should be noted" t))
+5. Any anti-patterns that should be noted")
+         (user-input (aider-read-string "Enter pattern analysis instructions: " initial-prompt)))
+    (aider-add-current-file)
+    (aider--send-command (format "/ask %s" user-input) t)))
 
 ;; Check if "Code Reading" section exists in the menu
 (defun aider-code-read--has-section-p ()
