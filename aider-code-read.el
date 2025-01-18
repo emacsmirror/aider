@@ -80,6 +80,69 @@ Explain its basic operations, data structures, and control flow." function-name)
     (aider-add-current-file)
     (aider--send-command (format "/ask %s" user-input) t)))
 
+(defun aider-analyze-class ()
+  "Analyze class definition using OOP analysis technique."
+  (interactive)
+  (if-let ((class-name (aider--get-class-at-point)))
+      (let* ((initial-prompt 
+              (format "Analyze class '%s' using OOP perspective:
+1. Class responsibility and purpose
+2. Inheritance hierarchy and relationships
+3. Key attributes and their purposes
+4. Public interface and method contracts
+5. Internal implementation patterns
+6. Collaboration with other classes
+7. State management approach" class-name))
+             (user-input (aider-read-string "Enter class analysis instructions: " initial-prompt)))
+        (aider-add-current-file)
+        (aider--send-command (format "/ask %s" user-input) t))
+    (message "No class definition at point.")))
+
+(defun aider-analyze-file ()
+  "Analyze current file using file-level reading technique."
+  (interactive)
+  (let* ((file-name (buffer-file-name))
+         (initial-prompt 
+          (format "Analyze file '%s' using file-level perspective:
+1. File's primary purpose and responsibilities
+2. Key abstractions defined in the file
+3. Dependencies and imports analysis
+4. File organization and structure
+5. Coding conventions used
+6. Integration points with other files
+7. Configuration and environment dependencies
+8. Notable algorithms or business logic" (file-name-nondirectory file-name)))
+         (user-input (aider-read-string "Enter file analysis instructions: " initial-prompt)))
+    (aider-add-current-file)
+    (aider--send-command (format "/ask %s" user-input) t)))
+
+(defun aider-analyze-module ()
+  "Analyze current directory/module using architectural reading technique."
+  (interactive)
+  (let* ((dir-name (file-name-directory (buffer-file-name)))
+         (initial-prompt 
+          (format "Analyze module in directory '%s' using architectural perspective:
+1. Module's role in the system
+2. Package organization and structure
+3. Key components and their interactions
+4. External dependencies and interfaces
+5. Internal module architecture
+6. Configuration management
+7. Testing strategy
+8. Integration patterns with other modules
+9. Deployment considerations" (directory-file-name dir-name)))
+         (user-input (aider-read-string "Enter module analysis instructions: " initial-prompt)))
+    ;; Add all relevant files in the directory
+    (aider-add-same-type-files-under-dir)
+    (aider--send-command (format "/ask %s" user-input) t)))
+
+(defun aider--get-class-at-point ()
+  "Get the class name at point. Support multiple programming languages."
+  (save-excursion
+    (let ((case-fold-search nil))
+      (when (re-search-backward "\\<\\(class\\|interface\\|trait\\)\\s-+\\([A-Za-z0-9_]+\\)" nil t)
+        (match-string-no-properties 2)))))
+
 ;; Check if "Code Reading" section exists in the menu
 (defun aider-code-read--has-section-p ()
   "Check if Code Reading section already exists in aider-transient-menu."
@@ -94,10 +157,13 @@ Explain its basic operations, data structures, and control flow." function-name)
   (unless (aider-code-read--has-section-p)
     (transient-append-suffix 'aider-transient-menu '(0)
       '["Code Reading"
-        ("R" "Bottom-up Analysis" aider-analyze-code-unit)
-        ("S" "Top-down Analysis" aider-analyze-program-structure)
-        ("D" "Dependency Analysis" aider-analyze-dependencies)
-        ("P" "Pattern Recognition" aider-identify-patterns)])))
+        ("R" "Analyze Code Unit" aider-analyze-code-unit)
+        ("S" "Analyze Program Structure" aider-analyze-program-structure)
+        ("D" "Dependency Analysis for Function" aider-analyze-dependencies)
+        ("P" "Pattern Recognition" aider-identify-patterns)
+        ("C" "Analyze Class" aider-analyze-class)
+        ("F" "Analyze File" aider-analyze-file)
+        ("M" "Analyze Module" aider-analyze-module)])))
 
 (provide 'aider-code-read)
 
