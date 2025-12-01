@@ -365,8 +365,8 @@ The keyword and its definition are configured in `aider-todo-keyword-pair`."
                     (user-error "Selected region must be a comment block"))
                   (format (concat
                           "Please implement code after this requirement comment block in the selected region. "
-                          "Keep the comment in place and ensure it begins with a DONE prefix (change %s to DONE or prepend DONE if no prefix) before adding the implementation code after it. "
-                          "Keep the existing code structure and add the implementation after this specific block.%s%s\n%s")
+                          "Keep the comment in place and ensure it begins with a DONE prefix (change %s to DONE or prepend DONE if no prefix). "
+                          "If this is a pure new code block, place it after the comment; otherwise keep the existing structure and make corresponding change for the context.%s%s\n%s")
                           keyword
                           (or function-context "")
                           (if region-location-line (concat "\n" region-location-line) "")
@@ -374,8 +374,8 @@ The keyword and its definition are configured in `aider-todo-keyword-pair`."
                  (is-comment
                   (format (concat
                           "Please implement code after this requirement comment on line %d: '%s'. "
-                          "Keep the comment in place and ensure it begins with a DONE prefix (change %s to DONE or prepend DONE if needed) before adding the implementation code after it. "
-                          "Keep the existing code structure and add the implementation after this specific comment.%s")
+                          "Keep the comment in place and ensure it begins with a DONE prefix (change %s to DONE or prepend DONE if needed). "
+                          "If this is a pure new code block, place it after the comment; otherwise keep the existing structure and make corresponding change for the context.%s")
                           current-line-number current-line keyword (or function-context "")))
                  (t
                   (user-error (concat
