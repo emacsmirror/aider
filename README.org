@@ -285,6 +285,8 @@ The following books introduce how to use AI to assist programming and potentiall
 - [[https://itrevolution.com/product/vibe-coding-book/][Vibe Coding]], Coming Fall 2025
 - [[https://learning.oreilly.com/library/view/beyond-vibe-coding/9798341634749/][Beyond Vibe Coding]], by Addy Osmani, will be published in August, 2025
 
+- [[https://github.com/tninja/ai-code-interface.el?tab=readme-ov-file#ai-assisted-programming-related-books][More AI Assisted Programming related books]]
+
 * Other Emacs AI coding tool
 
 - Inspired by, and Thanks to:
